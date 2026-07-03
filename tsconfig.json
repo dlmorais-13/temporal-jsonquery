@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "lib": [
+      "ESNext",
+      "dom"
+    ],
+    "target": "ESNext",
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "allowJs": false,
+    "checkJs": false,
+    "strict": false,
+    "noImplicitAny": false,
+    "declaration": true,
+    "declarationDir": "lib",
+    "declarationMap": true,
+    "skipLibCheck": true
+  }
+}
