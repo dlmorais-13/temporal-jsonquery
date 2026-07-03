@@ -383,7 +383,9 @@ export const functions: FunctionBuildersMap = {
 
               if (Object.keys(vData).length) {
                 picked.versions.push([ValueTypes.ARRAY, v[1], Object.keys(vData)])
-                picked.data = { ...picked.data, ...vData }
+                for (let k of Object.keys(vData)) {
+                  if (!(k in picked.data)) picked.data[k] = vData[k]
+                }
               }
             }
           }
