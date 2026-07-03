@@ -1,15 +1,11 @@
-# JSON Query
+# Temporal JSON Query
+
+> [!WARNING]
+> Heads up: This repository content is a work in progress. Do not use in production.
 
 ![JSON Query Logo](https://jsonquerylang.org/frog-756900-100.png)
 
-To build
-npm run build:esm
-
-To run
-node bin/clconvert.js --input json/userstime.json '.friends | pick(.age)'
-node bin/cli.js --input json/converted.json 'getTemporal(.friends) | pick(.age)'
-
-A small, flexible, and expandable JSON query language.
+A small, flexible, and expandable JSON query language capable of operating over Temporal JSON Data.
 
 Try it out on the online playground: <https://jsonquerylang.org>
 
