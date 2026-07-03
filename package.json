@@ -45,7 +45,7 @@
     "build:esm": "vite build",
     "build:types": "tsc --project tsconfig-types.json",
     "build:validate": "vitest run test-lib",
-    "benchmark": "tsx --expose-gc src/benchmark.ts",
+    "benchmark": "tsx --expose-gc --max-old-space-size=16384 --max-semi-space-size=1024 src/benchmark.ts",
     "lint": "biome check",
     "format": "biome check --write",
     "format:readme": "prettier README.md --write --ignore-path notneeded",

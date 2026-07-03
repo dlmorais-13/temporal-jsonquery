@@ -5,7 +5,7 @@ import { isEqual } from './is';
 const results = [];
 
 async function benchmark(size: number, type: 'regular' | 'temporal', query: string, verifyFn: (unknown) => boolean = undefined) {
-    if (global.gc) global.gc();
+    global.gc();
 
     // Initial metrics.
     const startMemory = process.memoryUsage();
@@ -22,8 +22,9 @@ async function benchmark(size: number, type: 'regular' | 'temporal', query: stri
     const queryTime = performance.now();
     const queryMemory = process.memoryUsage();
 
-    if (verifyFn && !verifyFn(result))
+    if (verifyFn && !verifyFn(result)) {
         console.warn(`Query "${query}" on ${type} data did not return the expected result.`);
+    }
 
     // Push results.
     results.push({
@@ -48,15 +49,24 @@ const query2Result = [6985, 13918, 20831, 27822, 34774]
 const query3 = 'pick(.title)'
 const query3Result = ['title']
 
-for (let idx in sizes) {
-    await benchmark(sizes[idx], 'regular', query1, r => r === query1Result[idx])
-    await benchmark(sizes[idx], 'temporal', `sequenced() | ${query1}`, r => r.versions[0][2] === query1Result[idx])
+const benchmarks = [
+    { type: 'regular', query: query1, verify: (sizeIdx) => r => r === query1Result[sizeIdx] },
+    { type: 'temporal', query: query1, verify: (sizeIdx) => r => r.versions[0][2] === query1Result[sizeIdx] },
+    { type: 'regular', query: query2, verify: (sizeIdx) => r => r === query2Result[sizeIdx] },
+    { type: 'temporal', query: query2, verify: (sizeIdx) => r => r === query2Result[sizeIdx] },
+    { type: 'regular', query: query3, verify: (sizeIdx) => r => r.every(i => isEqual(Object.keys(i), query3Result)) },
+    { type: 'temporal', query: query3, verify: (sizeIdx) => r => Object.values(r.data).every(i => isEqual(Object.keys(i), query3Result)) },
+]
 
-    await benchmark(sizes[idx], 'regular', query2, r => r === query2Result[idx])
-    await benchmark(sizes[idx], 'temporal', `sequenced() | ${query2}`, r => r === query2Result[idx])
-
-    await benchmark(sizes[idx], 'regular', query3, r => r.every(i => isEqual(Object.keys(i), query3Result)))
-    await benchmark(sizes[idx], 'temporal', `sequenced() | ${query3}`, r => Object.values(r.data).every(i => isEqual(Object.keys(i), query3Result)))
+for (let b of benchmarks) {
+    for (let idx in sizes) {
+        await benchmark(
+            sizes[idx],
+            b.type as 'regular' | 'temporal',
+            b.type === 'temporal' ? `sequenced() | ${b.query}` : b.query,
+            b.verify(idx)
+        )
+    }
 }
 
 console.table(results)
