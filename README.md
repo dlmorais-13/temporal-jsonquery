@@ -7,7 +7,7 @@
 
 A small, flexible, and expandable JSON query language capable of operating over Temporal JSON Data.
 
-Try it out on the online playground: <https://jsonquerylang.org>
+<!-- Try it out on the online playground: <https://jsonquerylang.org> -->
 
 ![JSON Query Overview](https://jsonquerylang.org/jsonquery-overview.svg)
 
