@@ -197,6 +197,7 @@ export const functions: FunctionBuildersMap = {
   get: (...path: JSONPath) => {
     // Push a "data" into each name in a path
     // Still have to figure out what to do with an array get
+
     if (stateIsTemporal) {
       const newPath = []
       for (const prop of path) {
@@ -322,6 +323,60 @@ export const functions: FunctionBuildersMap = {
     const getter = compile(path)
     const sign = direction === 'desc' ? -1 : 1
 
+    function temporalCompare(itemA: unknown, itemB: unknown) {
+      const aItem = itemA[1]
+      const bItem = itemB[1]
+
+      // Items are indexes into data array
+      const a = getter(aItem)
+      const b = getter(bItem)
+
+      // For now, let's just check the first version of each item
+      const aValue = a["versions"][0][2]
+      const bValue = b["versions"][0][2]
+
+      // Order mixed types
+      if (typeof aValue !== typeof bValue) {
+        const aIndex = sortableTypes[typeof a] ?? otherTypes
+        const bIndex = sortableTypes[typeof b] ?? otherTypes
+
+        return aIndex > bIndex ? sign : aIndex < bIndex ? -sign : 0
+      }
+
+      // Order two numbers, two strings, or two booleans
+      if ((typeof aValue) in sortableTypes) {
+        return aValue > bValue ? sign : aValue < bValue ? -sign : 0
+      }
+
+      // Leave arrays, objects, and unknown types ordered as is
+      return 0
+
+      /*
+      for (const aVersion in a) {
+        const aValue = aVersion[2]
+        for (const bVersion in b) {
+          const bValue = bVersion[2]
+          // Order mixed types
+          if (typeof aValue !== typeof bValue) {
+            const aIndex = sortableTypes[typeof a] ?? otherTypes
+            const bIndex = sortableTypes[typeof b] ?? otherTypes
+
+            return aIndex > bIndex ? sign : aIndex < bIndex ? -sign : 0
+          }
+
+          // Order two numbers, two strings, or two booleans
+          if ((typeof aValue) in sortableTypes) {
+            return aValue > bValue ? sign : aValue < bValue ? -sign : 0
+          }
+
+          // Leave arrays, objects, and unknown types ordered as is
+          return 0
+        }
+      }
+       */
+
+    }
+
     function compare(itemA: unknown, itemB: unknown) {
       const a = getter(itemA)
       const b = getter(itemB)
@@ -343,7 +398,37 @@ export const functions: FunctionBuildersMap = {
       return 0
     }
 
-    return (data: T[]) => data.slice().sort(compare)
+    if (stateIsTemporal) {
+      return (d) => {
+        const sorted = { "versions": [], "data": {} };
+
+        const map = {}
+        for (let v of d["versions"]) {
+          if (v[0] !== ValueTypes.ARRAY)
+            throwArrayExpected()
+
+          const times = checkTimestamp(v)
+          if (times.length) {
+            let vData = v[2]
+                .map(vIdx => [vIdx, d["data"][vIdx]])
+
+            // Add all these to the data
+            vData.forEach(idxAndItem => sorted.data[idxAndItem[0]] = idxAndItem[1])
+            // Now let's sort
+            vData = vData
+                .sort(temporalCompare)
+                .map(v => v[0])   // just get the indexes
+
+            // Add to the versions
+            sorted.versions.push([ValueTypes.ARRAY, v[1], vData])
+          }
+          return sorted
+        }
+      }
+    } else {
+      return (data: T[]) => data.slice().sort(compare)
+    }
+
   },
 
   reverse:
@@ -376,13 +461,14 @@ export const functions: FunctionBuildersMap = {
 
             const times = checkTimestamp(v)
             if (times.length) {
+              const vDataOriginal = v[2]
               const vData = (v[2] as Array<string>).reduce((acc, key) => {
                 acc[key] = _pick(data.data[key], getters)
                 return acc
               }, {})
 
               if (Object.keys(vData).length) {
-                picked.versions.push([ValueTypes.ARRAY, v[1], Object.keys(vData)])
+                picked.versions.push([ValueTypes.ARRAY, v[1], vDataOriginal /*Object.keys(vData)*/])
                 for (let k of Object.keys(vData)) {
                   if (!(k in picked.data)) picked.data[k] = vData[k]
                 }

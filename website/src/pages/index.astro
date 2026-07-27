@@ -1,0 +1,17 @@
+---
+import App from '../components/App.svelte'
+import Layout from '../layouts/Layout.astro'
+---
+
+<Layout
+  title="Temporal JSON Query - a language to query Temporal JSON"
+  description="Temporal JSON Query - a temporal extension of the JSON query language"
+>
+  <App client:load />
+</Layout>
+
+<style>
+  :root {
+    --background-color: var(--background-color-gray) !important;
+  }
+</style>

@@ -3,18 +3,8 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { jsonquery, ValueTypes } from '../lib/temporal-jsonquery.js'
+import { jsonquery, ValueTypes, convertToTeporal } from 'node:jsonquery'
 import { help } from './help.js'
-
-/*
-const ValueTypes = Object.freeze({
-  OBJECT: 0,
-  ARRAY: 1,
-  STRING: 2,
-  NUMBER: 3,
-  NULL: 4
-});
- */
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -60,7 +50,7 @@ async function run(options) {
   }
 }
 
-function convertToTemporal(currentKey, jsonObject) {
+function convertToTemporalOld(currentKey, jsonObject) {
   var listOfKeys = []
   var jsonData = {}
   var jsonArray = []
