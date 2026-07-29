@@ -7,6 +7,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 // https://astro.build/config
 export default defineConfig({
   integrations: [svelte()],
+  base: '/temporal-jsonquery',
   markdown: {
     rehypePlugins: [rehypeHeadingIds, [rehypeAutolinkHeadings, { behavior: 'wrap' }]],
     shikiConfig: {
