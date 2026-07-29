@@ -1,5 +1,6 @@
 ---
 import Menu from './Menu.astro'
+const baseUrl = import.meta.env.BASE_URL;
 ---
 
 <div class="header">
@@ -7,8 +8,8 @@ import Menu from './Menu.astro'
     <a href="/">
     <!-- source: https://pixy.org/756900/ -->
     <img
-        src="/logo.png"
-        srcset="/logo.png 2x"
+        src={`${baseUrl}/logo.png`}
+        srcset={`${baseUrl}/logo.png 2x`}
         alt="JSON Query logo"
         class="header-icon"
         width="100"
