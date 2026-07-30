@@ -7,6 +7,7 @@ import Playground from './Playground.svelte'
 import { loadLocalStorage, saveLocalStorage } from './runes/localStorageState.svelte'
 import { isTextFormat } from './typeguards'
 import type { QueryText } from './types'
+import { stringifyJson } from './stringifyJson'
 
 if (typeof window !== 'undefined') {
   // @ts-ignore
@@ -21,7 +22,8 @@ const keyQuerySemantics = 'playground-query-semantics'
 
 let name = $state(examples[0].name)
 let input = $state(loadLocalStorage(keyInput, examples[0].input))
-let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, JSON.stringify(convertToTemporal("root", JSON.parse(input)),null,'  ')))
+let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, 'temporal JSON will appear here'))
+// let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, stringifyJson(convertToTemporal("root", JSON.parse(input)))))
 let queryTab: 'text' | 'json' = $state(loadLocalStorage(keyQueryTab, 'text'))
 let querySemantics: 'nontemporalSemantics' | 'temporalSemantics' = $state(loadLocalStorage(keyQuerySemantics, 'nontemporalSemantics'))
 let query: QueryText = $state(loadLocalStorage(keyQuery, { textFormat: examples[0].query }))
@@ -34,7 +36,10 @@ $effect(() => saveLocalStorage(keyQuerySemantics, querySemantics))
 
 function loadExample(example: Example) {
   input = example.input
-  temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(example.input)),null,'  ')
+
+  temporalJSON = stringifyJson(convertToTemporal("root", JSON.parse(input)))
+
+  //temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(example.input)),null,'  ')
   query = { textFormat: example.query }
   name = example.name
 }
