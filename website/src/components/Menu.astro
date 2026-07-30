@@ -4,12 +4,14 @@ import { faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import Fa from 'svelte-fa'
 
 const currentPath = new URL(Astro.request.url).pathname
+const baseUrl = "/temporal-jsonquery" /*import.meta.env.BASE_URL;*/;
+
 
 const pages = [
-  { path: '/', text: 'Playground' },
-  { path: '/docs/', text: 'Documentation' },
-  { path: '/reference/', text: 'Function reference' },
-  { path: '/implementations/', text: 'Implementations' },
+  { path: `${baseUrl}/`, text: 'Playground' },
+  { path: `${baseUrl}/docs/`, text: 'Documentation' },
+  { path: `${baseUrl}/reference/`, text: 'Function reference' },
+  { path: `${baseUrl}/implementations/`, text: 'Implementations' },
   {
     path: 'https://github.com/dlmorais-13/temporal-jsonquery',
     text: 'Source code',

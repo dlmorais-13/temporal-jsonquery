@@ -98,7 +98,9 @@ function handleChangeTextQuery(
 function handleChangeInput(
   event: Event & { currentTarget: EventTarget & HTMLTextAreaElement }
 ) {
-  temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(input)),null,'  ')
+
+  temporalJSON = stringifyJson(convertToTemporal("root", JSON.parse(input)))
+  // temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(input)),null,'  ')
 }
 
 function handleChangeJSONQuery(
