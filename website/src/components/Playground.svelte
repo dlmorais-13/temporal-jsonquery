@@ -1,129 +1,150 @@
 <script lang="ts">
-import { type JSONQuery, parse, stringify } from '@jsonquerylang/jsonquery'
-import { jsonquery, ValueTypes, convertToTemporal } from '../../../lib/temporal-jsonquery.js'
-import Button from './Button.svelte'
-import DebuggerModal from './DebuggerModal.svelte'
-import QuickReference from './QuickReference.svelte'
-import { stringifyJson } from './stringifyJson'
-import { isJSONQueryError, isOutputError, isTextFormat } from './typeguards.ts'
-import type { JSONQueryError, JSONType, Output, ProcessedQuery, QueryText } from './types'
+  import { type JSONQuery, parse, stringify } from "@jsonquerylang/jsonquery";
+  import {
+    jsonquery,
+    convertToTemporal,
+  } from "../../../lib/temporal-jsonquery.js";
+  import Button from "./Button.svelte";
+  import DebuggerModal from "./DebuggerModal.svelte";
+  import QuickReference from "./QuickReference.svelte";
+  import { stringifyJson } from "./stringifyJson";
+  import {
+    isJSONQueryError,
+    isOutputError,
+    isTextFormat,
+  } from "./typeguards.ts";
+  import type {
+    JSONQueryError,
+    JSONType,
+    Output,
+    ProcessedQuery,
+    QueryText,
+  } from "./types";
 
-let {
-  input = $bindable('input'),
-  temporalJSON = $bindable('temporalJSON'),
-  query = $bindable('query'),
-  queryTab = $bindable('queryTab'),
-  querySemantics = $bindable('querySemantics')
-} = $props<{
-  input: string
-  temporalJSON: string
-  query: QueryText
-  queryTab: 'text' | 'json'
-  querySemantics: 'nontemporalSemantics' | 'temporalSemantics'
-}>()
+  let {
+    input = $bindable("input"),
+    operations = $bindable("operations"),
+    temporalJSON = $bindable("temporalJSON"),
+    query = $bindable("query"),
+    queryTab = $bindable("queryTab"),
+    querySemantics = $bindable("querySemantics"),
+  } = $props<{
+    input: string;
+    operations: Array<{ path: string; value: unknown }>;
+    temporalJSON: string;
+    query: QueryText;
+    queryTab: "text" | "json";
+    querySemantics: "nontemporalSemantics" | "temporalSemantics";
+  }>();
 
-let debugError: JSONQueryError | null = $state(null)
-const processedQuery: ProcessedQuery = $derived(processQuery(query))
-const output = $derived(go(input, processedQuery))
+  let debugError: JSONQueryError | null = $state(null);
+  const processedQuery: ProcessedQuery = $derived(processQuery(query));
+  const output = $derived(go(input, processedQuery));
 
-function processQuery(query: QueryText): ProcessedQuery {
-  if (isTextFormat(query)) {
-    const { textFormat } = query
+  function processQuery(query: QueryText): ProcessedQuery {
+    if (isTextFormat(query)) {
+      const { textFormat } = query;
 
-    try {
-      const queryJson = parse(textFormat)
-      const jsonFormat = stringifyJson(queryJson)
+      try {
+        const queryJson = parse(textFormat);
+        const jsonFormat = stringifyJson(queryJson);
 
-      return { textFormat, jsonFormat, queryJson }
-    } catch (err) {
-      return { textFormat, jsonError: err as Error }
-    }
-  } else {
-    const { jsonFormat } = query
-
-    try {
-      const queryJson = JSON.parse(jsonFormat)
-      const textFormat = stringify(queryJson)
-
-      return { jsonFormat, textFormat, queryJson }
-    } catch (err) {
-      return { jsonFormat, textError: err as Error }
-    }
-  }
-}
-
-function go(inputText: string, parsedQuery: ProcessedQuery): Output {
-  if (parsedQuery.textError) {
-    return { error: parsedQuery.textError }
-  }
-
-  if (parsedQuery.jsonError) {
-    return { error: parsedQuery.jsonError }
-  }
-
-  if (!parsedQuery.queryJson) {
-    return { error: new Error('Query is missing') }
-  }
-
-  try {
-    if (querySemantics == 'nontemporalSemantics') {
-        const input = JSON.parse(inputText)
-
-        return {
-          json: jsonquery(input, parsedQuery.queryJson) as JSONType
-        }
+        return { textFormat, jsonFormat, queryJson };
+      } catch (err) {
+        return { textFormat, jsonError: err as Error };
+      }
     } else {
-        const input = JSON.parse(temporalJSON)
+      const { jsonFormat } = query;
+
+      try {
+        const queryJson = JSON.parse(jsonFormat);
+        const textFormat = stringify(queryJson);
+
+        return { jsonFormat, textFormat, queryJson };
+      } catch (err) {
+        return { jsonFormat, textError: err as Error };
+      }
+    }
+  }
+
+  function go(inputText: string, parsedQuery: ProcessedQuery): Output {
+    if (parsedQuery.textError) {
+      return { error: parsedQuery.textError };
+    }
+
+    if (parsedQuery.jsonError) {
+      return { error: parsedQuery.jsonError };
+    }
+
+    if (!parsedQuery.queryJson) {
+      return { error: new Error("Query is missing") };
+    }
+
+    try {
+      if (querySemantics == "nontemporalSemantics") {
+        const input = JSON.parse(inputText);
 
         return {
-          json: jsonquery(input, parsedQuery.queryJson, null, true) as JSONType
-        }
+          json: jsonquery(input, parsedQuery.queryJson) as JSONType,
+        };
+      } else {
+        const input = JSON.parse(temporalJSON);
+
+        return {
+          json: jsonquery(input, parsedQuery.queryJson, null, true) as JSONType,
+        };
+      }
+    } catch (err) {
+      console.error(err);
+      return {
+        error: err as Error,
+      };
     }
-  } catch (err) {
-    console.error(err)
-    return {
-      error: err as Error
+  }
+
+  function handleChangeTextQuery(
+    event: Event & { currentTarget: EventTarget & HTMLTextAreaElement },
+  ) {
+    query = {
+      textFormat: event.currentTarget?.value,
+    };
+  }
+
+  function handleChangeInput(
+    event: Event & { currentTarget: EventTarget & HTMLTextAreaElement },
+  ) {
+    temporalJSON = stringifyJson(convertToTemporal("", JSON.parse(input)));
+    // temporalJSON = JSON.stringify(convertToTemporal("", JSON.parse(input)),null,'  ')
+  }
+
+  function handleChangeOperations() {
+    temporalJSON = stringifyJson(
+      convertToTemporal("", JSON.parse(input), JSON.parse(operations)),
+    );
+  }
+
+  function handleChangeJSONQuery(
+    event: Event & { currentTarget: EventTarget & HTMLTextAreaElement },
+  ) {
+    query = {
+      jsonFormat: event.currentTarget?.value,
+    };
+  }
+
+  function handleDebug(error: Error | JSONQueryError) {
+    debugError = isJSONQueryError(error) ? error : null;
+  }
+
+  function stringifyError(error: Error | JSONQueryError): string {
+    const errorStack: { query: JSONQuery }[] | null =
+      "jsonquery" in error ? error.jsonquery : null;
+    if (errorStack) {
+      const lastQuery = errorStack[errorStack.length - 1].query;
+      return `${error}\n\nWhilst executing the following part of the query:\n\n${JSON.stringify(lastQuery)}`;
     }
+
+    return String(error);
   }
-}
-
-function handleChangeTextQuery(
-  event: Event & { currentTarget: EventTarget & HTMLTextAreaElement }
-) {
-  query = {
-    textFormat: event.currentTarget?.value
-  }
-}
-
-function handleChangeInput(
-  event: Event & { currentTarget: EventTarget & HTMLTextAreaElement }
-) {
-
-  temporalJSON = stringifyJson(convertToTemporal("root", JSON.parse(input)))
-  // temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(input)),null,'  ')
-}
-
-function handleChangeJSONQuery(
-  event: Event & { currentTarget: EventTarget & HTMLTextAreaElement }
-) {
-  query = {
-    jsonFormat: event.currentTarget?.value
-  }
-}
-
-function handleDebug(error: Error | JSONQueryError) {
-  debugError = isJSONQueryError(error) ? error : null
-}
-
-function stringifyError(error: Error | JSONQueryError): string {
-  const errorStack: { query: JSONQuery }[] | null = 'jsonquery' in error ? error.jsonquery : null
-  if (errorStack) {
-    const lastQuery = errorStack[errorStack.length - 1].query
-    return `${error}\n\nWhilst executing the following part of the query:\n\n${JSON.stringify(lastQuery)}`
-  }
-
-  return String(error)
-}
 </script>
 
 <div class="playground">
@@ -138,16 +159,27 @@ function stringifyError(error: Error | JSONQueryError): string {
       oninput={handleChangeInput}
     ></textarea>
   </div>
-    <div class="column">
-      <label for="temporal-input-text">Temporal JSON Conversion</label>
-      <textarea
-        id="temporal-input-text"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-        bind:value={temporalJSON}
-      ></textarea>
-    </div>
+  <div class="column">
+    <label for="operations-text">Temporal Modifications</label>
+    <textarea
+      id="operations-text"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      bind:value={operations}
+      oninput={handleChangeOperations}
+    ></textarea>
+  </div>
+  <div class="column">
+    <label for="temporal-input-text">Temporal JSON Conversion</label>
+    <textarea
+      id="temporal-input-text"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      bind:value={temporalJSON}
+    ></textarea>
+  </div>
   <div class="column">
     <div class="row">
       <div class="tab-section text-format">
@@ -156,29 +188,31 @@ function stringifyError(error: Error | JSONQueryError): string {
           <label for="query-nontemporal"
             ><button
               title="Nontemporal semantics"
-              class:selected={querySemantics === 'nontemporalSemantics'}
-              onclick={() => (querySemantics = 'nontemporalSemantics')}>Nontemporal</button
+              class:selected={querySemantics === "nontemporalSemantics"}
+              onclick={() => (querySemantics = "nontemporalSemantics")}
+              >Nontemporal</button
             ></label
           >
           <label for="query-temporal"
             ><button
               title="Temporal semantics"
-              class:selected={querySemantics === 'temporalSemantics'}
-              onclick={() => (querySemantics = 'temporalSemantics')}>Temporal</button
+              class:selected={querySemantics === "temporalSemantics"}
+              onclick={() => (querySemantics = "temporalSemantics")}
+              >Temporal</button
             ></label
           >
           <label for="query-text"
             ><button
               title="Text format"
-              class:selected={queryTab === 'text'}
-              onclick={() => (queryTab = 'text')}>Text</button
+              class:selected={queryTab === "text"}
+              onclick={() => (queryTab = "text")}>Text</button
             ></label
           >
           <label for="query-json"
             ><button
               title="JSON format"
-              class:selected={queryTab === 'json'}
-              onclick={() => (queryTab = 'json')}>JSON</button
+              class:selected={queryTab === "json"}
+              onclick={() => (queryTab = "json")}>JSON</button
             ></label
           >
         </div>
@@ -188,7 +222,7 @@ function stringifyError(error: Error | JSONQueryError): string {
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            class:selected={queryTab === 'text'}
+            class:selected={queryTab === "text"}
             oninput={handleChangeTextQuery}
             >{processedQuery.textFormat ?? processedQuery.textError}</textarea
           >
@@ -197,7 +231,7 @@ function stringifyError(error: Error | JSONQueryError): string {
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
-            class:selected={queryTab === 'json'}
+            class:selected={queryTab === "json"}
             oninput={handleChangeJSONQuery}
             >{processedQuery.jsonFormat ?? processedQuery.jsonError}</textarea
           >
@@ -206,20 +240,19 @@ function stringifyError(error: Error | JSONQueryError): string {
     </div>
   </div>
 
-
   <div class="column">
     <label for="output-text">Output</label>
     {#if isOutputError(output)}
       {@const error = output.error}
       {#if isJSONQueryError(error)}
-        <Button
-          type="button"
-          onclick={() => handleDebug(error)}>Debug</Button
-        >
+        <Button type="button" onclick={() => handleDebug(error)}>Debug</Button>
       {/if}
-      <textarea id="output-text" readonly class="error">{stringifyError(output.error)}</textarea>
+      <textarea id="output-text" readonly class="error"
+        >{stringifyError(output.error)}</textarea
+      >
     {:else}
-      <textarea id="output-text" readonly>{stringifyJson(output.json)}</textarea>
+      <textarea id="output-text" readonly>{stringifyJson(output.json)}</textarea
+      >
     {/if}
   </div>
   <div class="column">

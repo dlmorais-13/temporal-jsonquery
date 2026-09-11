@@ -8,7 +8,7 @@
       {
         "assets": [
           {
-            "path": "lib/jsonquery.js"
+            "path": "lib/temporal-jsonquery.js"
           }
         ]
       }

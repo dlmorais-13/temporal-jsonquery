@@ -10,6 +10,35 @@ export type JSONQueryPipe = ['pipe', ...JSONQuery[]]
 
 export type Timestamp = [number, number]
 
+export enum ValueTypes {
+  OBJECT,
+  ARRAY,
+  STRING,
+  NUMBER,
+  BOOLEAN,
+  NULL
+}
+
+type ValueTypeMap = {
+  [ValueTypes.OBJECT]: Array<string>,
+  [ValueTypes.ARRAY]: Array<number>,
+  [ValueTypes.STRING]: string,
+  [ValueTypes.NUMBER]: number,
+  [ValueTypes.BOOLEAN]: boolean,
+  [ValueTypes.NULL]: null
+}
+
+export type TemporalVersion<T extends ValueTypes = ValueTypes> = {
+  [K in T]: [K, [number | null, number | null], ValueTypeMap[K]]
+}[T]
+
+const a: TemporalVersion<ValueTypes.STRING> = [ValueTypes.STRING, [1,2], '']
+
+export type TemporalData<T extends ValueTypes> = {
+  versions: Array<TemporalVersion<T>>,
+  data?: Record<string, TemporalData<ValueTypes>>
+}
+
 export interface JSONQueryOptions {
   functions?: FunctionBuildersMap
   operators?: CustomOperator[]

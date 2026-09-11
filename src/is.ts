@@ -20,32 +20,6 @@ export const isEqual = <T>(a: T, b: T): boolean => {
   )
 }
 
-export const getSafePropertyTemporal = (data: unknown, prop: string | number): unknown => {
-  // We have handled the timestamp, so let's get the actual value
-  // Drop down to the data and then do the get
-  // console.log("getSafeTe")
-  // console.log(data)
-  const object = data?.["data"]
-
-  const value = object?.[prop]
-  if (value === undefined) {
-    return undefined
-  }
-
-  // 1. do not allow getting props from the prototype (can be unsafe, like .constructor)
-  // 2. in case of an array, test if prop is an int
-  // 3. do not allow getting props from a string or number for example
-  if (
-      !Object.hasOwn(object as object, prop) ||
-      (Array.isArray(object) && !/^\d+$/.test(prop as string)) ||
-      typeof object !== 'object'
-  ) {
-    throw new TypeError(`Unsupported property "${prop}"`)
-  }
-
-  return value
-}
-
 export const getSafeProperty = (object: unknown, prop: string | number): unknown => {
   const value = object?.[prop]
   if (value === undefined) {

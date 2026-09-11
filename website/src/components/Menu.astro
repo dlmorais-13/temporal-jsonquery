@@ -4,7 +4,7 @@ import { faUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import Fa from 'svelte-fa'
 
 const currentPath = new URL(Astro.request.url).pathname
-const baseUrl = "/temporal-jsonquery" /*import.meta.env.BASE_URL;*/;
+const baseUrl = import.meta.env.BASE_URL;
 
 
 const pages = [
