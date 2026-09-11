@@ -94,14 +94,16 @@ export function convertToNonTemporal(currentKey: string, time: number, temporalO
     case ValueTypes.ARRAY:
       const array = [];
       for (let i of version[2]) {
-        array.push(convertToNonTemporal(`${currentKey}[${i}]`, time, temporalObject.data[i]));
+        const item = convertToNonTemporal(`${currentKey}[${i}]`, time, temporalObject.data[i]);
+        if (item) array.push(item);
       }
       return array;
 
     case ValueTypes.OBJECT:
       const obj = {};
       for (let i of version[2]) {
-        obj[i] = convertToNonTemporal(`${currentKey}.${i}`, time, temporalObject.data[i]);
+        const item = convertToNonTemporal(`${currentKey}.${i}`, time, temporalObject.data[i]);
+        if (item) obj[i] = item;
       }
       return obj;
   }
