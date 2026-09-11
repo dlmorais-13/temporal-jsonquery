@@ -160,7 +160,7 @@
     ></textarea>
   </div>
   <div class="column">
-    <label for="operations-text">Operations</label>
+    <label for="operations-text">Temporal Modifications</label>
     <textarea
       id="operations-text"
       autocomplete="off"
