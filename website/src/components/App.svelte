@@ -1,6 +1,6 @@
 <script lang="ts">
 import { compile, parse, stringify } from '@jsonquerylang/jsonquery'
-import { jsonquery, ValueTypes, convertToTemporal } from '../../../lib/temporal-jsonquery.js'
+import { jsonquery, convertToTemporal } from '../../../lib/temporal-jsonquery.js'
 import Button from './Button.svelte'
 import { type Example, examples } from './data/examples'
 import Playground from './Playground.svelte'
@@ -15,6 +15,7 @@ if (typeof window !== 'undefined') {
 }
 
 const keyInput = 'playground-input'
+const keyOperations = 'playground-operations'
 const keyTemporalJSON = 'playground-temporalJSON'
 const keyQuery = 'playground-query'
 const keyQueryTab = 'playground-query-tab'
@@ -22,13 +23,15 @@ const keyQuerySemantics = 'playground-query-semantics'
 
 let name = $state(examples[0].name)
 let input = $state(loadLocalStorage(keyInput, examples[0].input))
-let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, 'temporal JSON will appear here'))
-// let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, stringifyJson(convertToTemporal("root", JSON.parse(input)))))
+let operations = $state(loadLocalStorage(keyOperations, examples[0].operations))
+// let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, ''))
+let temporalJSON = $state(loadLocalStorage(keyTemporalJSON, stringifyJson(convertToTemporal("", JSON.parse(examples[0].input), JSON.parse(examples[0].operations)))))
 let queryTab: 'text' | 'json' = $state(loadLocalStorage(keyQueryTab, 'text'))
 let querySemantics: 'nontemporalSemantics' | 'temporalSemantics' = $state(loadLocalStorage(keyQuerySemantics, 'nontemporalSemantics'))
 let query: QueryText = $state(loadLocalStorage(keyQuery, { textFormat: examples[0].query }))
 
 $effect(() => saveLocalStorage(keyInput, input))
+$effect(() => saveLocalStorage(keyOperations, operations))
 $effect(() => saveLocalStorage(keyTemporalJSON, temporalJSON))
 $effect(() => saveLocalStorage(keyQuery, query))
 $effect(() => saveLocalStorage(keyQueryTab, queryTab))
@@ -36,10 +39,11 @@ $effect(() => saveLocalStorage(keyQuerySemantics, querySemantics))
 
 function loadExample(example: Example) {
   input = example.input
+  operations = example.operations
 
-  temporalJSON = stringifyJson(convertToTemporal("root", JSON.parse(input)))
+  temporalJSON = stringifyJson(convertToTemporal("", JSON.parse(input), JSON.parse(operations)))
 
-  //temporalJSON = JSON.stringify(convertToTemporal("root", JSON.parse(example.input)),null,'  ')
+  //temporalJSON = JSON.stringify(convertToTemporal("", JSON.parse(example.input)),null,'  ')
   query = { textFormat: example.query }
   name = example.name
 }
@@ -47,7 +51,7 @@ function loadExample(example: Example) {
 const activeExample = $derived(
   examples.find(
     (example) =>
-      example.input === input && isTextFormat(query) && example.query === query.textFormat  // && JSON.stringify(convertToTemporal("root", JSON.parse(input)),null,'  ') === temporalJSON
+      example.input === input && isTextFormat(query) && example.query === query.textFormat  // && JSON.stringify(convertToTemporal("", JSON.parse(input)),null,'  ') === temporalJSON
   )
 )
 </script>
@@ -60,7 +64,7 @@ const activeExample = $derived(
   </div>
 </div>
 
-<Playground bind:input bind:temporalJSON bind:query bind:queryTab bind:querySemantics/>
+<Playground bind:input bind:operations bind:temporalJSON bind:query bind:queryTab bind:querySemantics/>
 
 <style>
   .examples {

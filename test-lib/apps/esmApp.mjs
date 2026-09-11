@@ -1,4 +1,4 @@
-import { jsonquery } from '../../lib/jsonquery.js'
+import { jsonquery } from '../../lib/temporal-jsonquery.js'
 
 const data = [
   { name: 'Chris', age: 23, city: 'New York' },

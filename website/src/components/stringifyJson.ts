@@ -1,6 +1,6 @@
 import { Formatter, FracturedJsonOptions, TableCommaPlacement } from 'fracturedjsonjs'
 
-export function stringifyJson(json: unknown): string {
+export function stringifyJson(json: unknown): string | undefined {
   const formatter = new Formatter()
   formatter.Options = new FracturedJsonOptions()
   formatter.Options.MaxTotalLineLength = 55
@@ -11,5 +11,5 @@ export function stringifyJson(json: unknown): string {
   formatter.Options.OmitTrailingWhitespace = true
   formatter.Options.TableCommaPlacement = TableCommaPlacement.BeforePadding
 
-  return formatter.Reformat(JSON.stringify(json, null, 2))
+  return json ? formatter.Reformat(JSON.stringify(json, null, 2)) : undefined;
 }

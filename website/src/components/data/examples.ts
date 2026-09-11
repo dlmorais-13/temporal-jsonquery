@@ -1,34 +1,37 @@
-const input2 = `[
-  {"name": "Chris", "age": 23, "city": "New York"},
-  {"name": "Emily", "age": 19, "city": "Atlanta"},
-  {"name": "Joe", "age": 32, "city": "New York"},
-  {"name": "Kevin", "age": 19, "city": "Atlanta"},
-  {"name": "Michelle", "age": 27, "city": "Los Angeles"},
-  {"name": "Robert", "age": 45, "city": "Manhattan"},
-  {"name": "Sarah", "age": 31, "city": "New York"}
-]
-`
+import { stringifyJson } from "../stringifyJson"
+
+const input2and3 = stringifyJson([
+  { "name": "Chris", "age": 23, "city": "New York" },
+  { "name": "Emily", "age": 19, "city": "Atlanta" },
+  { "name": "Joe", "age": 32, "city": "New York" },
+  { "name": "Kevin", "age": 19, "city": "Atlanta" },
+  { "name": "Michelle", "age": 27, "city": "Los Angeles" },
+  { "name": "Robert", "age": 45, "city": "Manhattan" },
+  { "name": "Sarah", "age": 31, "city": "New York" }
+])!;
 
 export interface Example {
   name: string
   input: string
   query: string
+  operations: string
 }
 
 export const examples: Example[] = [
   {
     name: 'example 1',
-    input: `{
-  "friends": [
-    {"name": "Chris", "age": 23, "city": "New York"},
-    {"name": "Emily", "age": 19, "city": "Atlanta"},
-    {"name": "Joe", "age": 32, "city": "New York"},
-    {"name": "Kevin", "age": 19, "city": "Atlanta"},
-    {"name": "Michelle", "age": 27, "city": "Los Angeles"},
-    {"name": "Robert", "age": 45, "city": "Manhattan"},
-    {"name": "Sarah", "age": 31, "city": "New York"}
-  ]
-}`,
+    input: stringifyJson({
+      "friends": [
+        { "name": "Chris", "age": 23, "city": "New York" },
+        { "name": "Emily", "age": 19, "city": "Atlanta" },
+        { "name": "Joe", "age": 32, "city": "New York" },
+        { "name": "Kevin", "age": 19, "city": "Atlanta" },
+        { "name": "Michelle", "age": 27, "city": "Los Angeles" },
+        { "name": "Robert", "age": 45, "city": "Manhattan" },
+        { "name": "Sarah", "age": 31, "city": "New York" }
+      ]
+    })!,
+    operations: stringifyJson([])!,
     query: `.friends
   | filter(.city == "New York")
   | sort(.age)
@@ -36,56 +39,19 @@ export const examples: Example[] = [
   },
   {
     name: 'example 2',
-    input: input2,
-    query: `filter(.city == "New York" and .age > 30)\n`
-  }
-  /*,
+    input: input2and3,
+    operations: stringifyJson([])!,
+    query: `filter(.city == "New York" and .age > 30)`
+  },
   {
     name: 'example 3',
-    input: input2,
-    query: `map({
-  firstName: .name,
-  details: {
-    city: .city,
-    age: .age
+    input: input2and3,
+    query: `filter(.city == "New York") | timeSnapshot(2)`,
+    // query: `filter(.city == "Chicago") | timeSnapshot(2)`,
+    operations: stringifyJson([
+      { path: '[2].city', value: 'Chicago' },
+      { path: '[2].city', value: 'Atlanta' },
+      { path: '[0].city', value: 'Chicago'}
+    ])!
   }
-})
-`
-  },
-  {
-    name: 'example 4',
-    input: input2,
-    query: `{
-  names: map(.name),
-  count: size(),
-  averageAge: map(.age) | average()
-}
-`
-  },
-  {
-    name: 'example 5',
-    input: `[
-  { "name": "bread", "price": 2.5, "quantity": 2 },
-  { "name": "milk", "price": 1.2, "quantity": 3 }
-]
-`,
-    query: 'map(.price * .quantity) | sum()\n'
-  },
-  {
-    name: 'example 6',
-    input: `{
-  "Joe": {
-    "2025-01-06 00:00:00": "Day off",
-    "2025-01-14 00:00:00": "Start holiday",
-    "2025-01-18 00:00:00": "End holiday"
-  },
-  "Sarah": {
-    "2025-01-06 00:00:00": "Start holiday",
-    "2025-01-11 00:00:00": "End holiday"
-  }
-}`,
-    query: 'mapValues(mapKeys(substring(get(), 0, 10)))'
-  }
-
-   */
 ]

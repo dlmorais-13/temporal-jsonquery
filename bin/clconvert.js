@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { jsonquery, ValueTypes, convertToTeporal } from 'node:jsonquery'
+import { convertToTemporal } from '../lib/temporal-jsonquery.js'
 import { help } from './help.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,11 +11,7 @@ const __dirname = dirname(__filename)
 
 const options = {
   input: { type: 'string' },
-  query: { type: 'string' },
   output: { type: 'string' },
-  format: { type: 'string', default: 'text' },
-  overwrite: { type: 'boolean', default: false },
-  indentation: { type: 'string', default: '  ' },
   version: { type: 'boolean', short: 'v' },
   help: { type: 'boolean', short: 'h' }
 }
@@ -50,54 +46,6 @@ async function run(options) {
   }
 }
 
-function convertToTemporalOld(currentKey, jsonObject) {
-  var listOfKeys = []
-  var jsonData = {}
-  var jsonArray = []
-  if (Array.isArray(jsonObject)) {
-    Object.entries(jsonObject).forEach(([key, value]) => {
-      jsonArray.push(convertToTemporal(key, value))
-      listOfKeys.push(key)
-    })
-    return {
-      "versions": [[ValueTypes.ARRAY, [1,1], listOfKeys]],
-      "data": jsonArray
-    }
-    // As an object
-    /*
-    Object.entries(jsonObject).forEach(([key, value]) => {
-      jsonData[key.toString()] = convertToTemporal(key, value)
-      listOfKeys.push(key)
-    })
-    return {
-        "versions": [[ValueTypes.ARRAY, [1,1]], listOfKeys],
-        "data": jsonData
-      }
-     */
-  } else if (typeof(jsonObject) == 'object') {
-    Object.entries(jsonObject).forEach(([key, value]) => {
-      jsonData[key] = convertToTemporal(key, value)
-      listOfKeys.push(key)
-    })
-    return {
-      "versions": [[ValueTypes.OBJECT, [1,1], listOfKeys]],
-      "data": jsonData
-    }
-  } else if (typeof jsonObject === 'string') {
-    return {
-      "versions": [[ValueTypes.STRING, [1,1], jsonObject]],
-    }
-  } else if (typeof jsonObject === 'number') {
-    return {
-      "versions": [[ValueTypes.NUMBER, [1,1], jsonObject]],
-    }
-  } else {
-    // value is null
-    return {
-      "versions": [[ValueTypes.NULL, [1,1], null]],
-    }
-  }
-}
 /**
  * @param {Options} options
  * @returns {Promise<string>}
@@ -110,24 +58,6 @@ async function readInput(options) {
   }
 
   return JSON.parse(inputStr)
-}
-
-/**
- * @param {Options} options
- * @returns {Promise<string>}
- */
-function readQuery(options) {
-  const queryStr = options.query
-    ? fileToString(options.query)
-    : options.inlineQuery
-      ? options.inlineQuery
-      : throwError('No query provided')
-
-  return options.format === 'text' || options.format === undefined
-    ? queryStr
-    : options.format === 'json'
-      ? JSON.parse(queryStr)
-      : throwError(`Unknown format "${options.format}". Choose either "text" (default) or "json".`)
 }
 
 /**
@@ -191,10 +121,5 @@ function throwError(message) {
  * @property {boolean} [version]
  * @property {boolean} [help]
  * @property {string} [input]
- * @property {string} [query]
  * @property {string} [output]
- * @property {string} [inlineQuery]
- * @property {'text' | 'json'} [format='text']
- * @property {string} [indentation='  ']
- * @property {boolean} [overwrite=false]
  */

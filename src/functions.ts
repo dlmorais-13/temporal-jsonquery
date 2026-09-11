@@ -1,18 +1,20 @@
 import { compile } from './compile'
-import { getSafeProperty, getSafePropertyTemporal, isArray, isObject, isEqual as _isEqual } from './is'
-import type {
-  Entry,
-  FunctionBuilder,
-  FunctionBuildersMap,
-  Getter,
-  JSONPath,
-  JSONQuery,
-  JSONQueryFunction,
-  JSONQueryObject,
-  JSONQueryProperty,
-  Timestamp
+import { getSafeProperty, isArray, isObject, isEqual as _isEqual } from './is'
+import { convertToNonTemporal } from './temporalConvert'
+import {
+  TemporalData,
+  ValueTypes,
+  type Entry,
+  type FunctionBuilder,
+  type FunctionBuildersMap,
+  type Getter,
+  type JSONPath,
+  type JSONQuery,
+  type JSONQueryFunction,
+  type JSONQueryObject,
+  type JSONQueryProperty,
+  type Timestamp
 } from './types'
-import { ValueTypes } from "./jsonquery";
 
 export function buildFunction(fn: (...args: unknown[]) => unknown): FunctionBuilder {
   return (...args: JSONQuery[]) => {
@@ -152,28 +154,40 @@ export const functions: FunctionBuildersMap = {
   // Temporal functions
   timeSlice: (...items: Timestamp) => {
     // Changes semantics to temporal and
-
-    stateIsTemporal = true
-
-    return (data: unknown) => data
+    return (data: unknown) => {
+      stateIsTemporal = true
+      return data
+    }
   },
 
-  timeSnapshot: (...items: Timestamp) => {
-    stateIsTemporal = false
+  timeSnapshot: (time: number) => {
+
     // Change semantics to snapshot/non-temporal and process data to slice at a time
-    return (data: unknown) => data
+    return (data: TemporalData<ValueTypes>) => {
+      // Noop if already non-temporal
+      if (!stateIsTemporal) return data;
+
+      stateIsTemporal = false;
+      return convertToNonTemporal('', time, data);
+    }
   },
 
   sequenced: () => {
-    // Identify function, but changes temporal semantics to temporal
-    stateIsTemporal = true
-    return (data: unknown) => data
+    // Identity function, but changes temporal semantics to temporal
+    return (data: unknown) => {
+      stateIsTemporal = true
+      return data
+    }
   },
 
   pipe: (...entries: JSONQuery[]) => {
     const _entries = entries.map((entry) => compile(entry))
 
-    return (data: unknown) => _entries.reduce((data, evaluator) => evaluator(data), data)
+    return (data: unknown) => {
+      return _entries.reduce((data, evaluator) => {
+        return evaluator(data)
+      }, data)
+    }
   },
 
   object: (query: JSONQueryObject) => {
@@ -198,41 +212,32 @@ export const functions: FunctionBuildersMap = {
     // Push a "data" into each name in a path
     // Still have to figure out what to do with an array get
 
-    if (stateIsTemporal) {
-      const newPath = []
-      for (const prop of path) {
-        newPath.push("data")
-        newPath.push(prop)
-      }
-      path = newPath
-    }
-
-    // We could reuse the get function here, but let's just duplicate the code for now
-    if (path.length === 0) {
-      return (data: unknown) => data ?? null
-    }
-
-    if (path.length === 1) {
-      // console.log("path is 1")
-      const prop = path[0]
-      return stateIsTemporal ?
-        (data: unknown) => {
-          const times = checkTimestamp(data as temporalData<unknown>)
-          return times.length > 0 ? getSafePropertyTemporal(data, prop) ?? null : null
+    return (data) => {
+      if (!path.length) return data;
+      
+      if (stateIsTemporal) {
+        const temporalPath = [];
+        for (const prop of path) {
+          temporalPath.push("data");
+          temporalPath.push(prop);
         }
-        : (data: unknown) => getSafeProperty(data, prop) ?? null
-    }
 
-    return (data: unknown) => {
-      let value = data
-
-      for (const prop of path) {
-        value = getSafeProperty(value, prop)
+        const times = checkTimestamp(data as temporalData<unknown>);
+        if (!times.length) return null;
+        
+        let value = data;
+        for (const prop of temporalPath) {
+          value = getSafeProperty(value, prop);
+        }
+        return value ?? null;
+      } else {
+        let value = data;
+        for (const prop of path) {
+          value = getSafeProperty(value, prop);
+        }
+        return value ?? null;
       }
-
-      return value ?? null
-    }
-
+    };
   },
 
   map: <T>(callback: JSONQuery) => {
@@ -289,33 +294,35 @@ export const functions: FunctionBuildersMap = {
   },
 
   filter: <T>(predicate: JSONQuery) => {
-    if (stateIsTemporal) {
-      const _predicate = compile(predicate)
-      return (d) => {
-        const filtered = { "versions": [], "data": {} };
+    const _predicate = compile(predicate)
+    return (data) => {
+      if (stateIsTemporal) {
+        const filtered = { "versions": [], "data": [] };
 
-        for (let v of d["versions"]) {
+        for (let v of data["versions"]) {
           if (v[0] !== ValueTypes.ARRAY)
-            throwArrayExpected()
+            continue;
 
           const times = checkTimestamp(v)
           if (times.length) {
             const vData = v[2]
-              .map(vIdx => [vIdx, d["data"][vIdx]])
-              .filter(idxAndItem => truthy(_predicate(idxAndItem[1])))
+              .map(vIdx => data["data"][vIdx])
+              .filter(data => truthy(_predicate(data)))
 
             if (vData.length) {
-              filtered.versions.push([ValueTypes.ARRAY, v[1], vData.map(idxAndItem => idxAndItem[0])])
-              vData.forEach(idxAndItem => filtered.data[idxAndItem[0]] = idxAndItem[1])
+              vData.forEach(data => filtered.data.push(data));
+              filtered.versions.push([ValueTypes.ARRAY, v[1], Object.keys(filtered.data)]);
             }
           }
         }
 
-        return filtered.versions.length ? filtered : []
+        return filtered.versions.length ? filtered : {
+          versions: [],
+          data: []
+        }
+      } else {
+        return (data as Array<T>).filter((item) => truthy(_predicate(item)));
       }
-    } else {
-      const _predicate = compile(predicate)
-      return (data: T[]) => data.filter((item) => truthy(_predicate(item)))
     }
   },
 
@@ -398,37 +405,36 @@ export const functions: FunctionBuildersMap = {
       return 0
     }
 
-    if (stateIsTemporal) {
-      return (d) => {
+    return (data: T[]) => {
+      if (stateIsTemporal) {
         const sorted = { "versions": [], "data": {} };
 
         const map = {}
-        for (let v of d["versions"]) {
+        for (let v of data["versions"]) {
           if (v[0] !== ValueTypes.ARRAY)
             throwArrayExpected()
 
           const times = checkTimestamp(v)
           if (times.length) {
             let vData = v[2]
-                .map(vIdx => [vIdx, d["data"][vIdx]])
+              .map(vIdx => [vIdx, data["data"][vIdx]])
 
             // Add all these to the data
             vData.forEach(idxAndItem => sorted.data[idxAndItem[0]] = idxAndItem[1])
             // Now let's sort
             vData = vData
-                .sort(temporalCompare)
-                .map(v => v[0])   // just get the indexes
+              .sort(temporalCompare)
+              .map(v => v[0])   // just get the indexes
 
             // Add to the versions
             sorted.versions.push([ValueTypes.ARRAY, v[1], vData])
           }
           return sorted
         }
+      } else {
+        return data.toSorted(compare);
       }
-    } else {
-      return (data: T[]) => data.slice().sort(compare)
     }
-
   },
 
   reverse:
